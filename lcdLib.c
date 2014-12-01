@@ -28,8 +28,14 @@ void lcdInit() {
 }
 
 void lcdTriggerEN() {
-	P2OUT |= EN;
 	P2OUT &= ~EN;
+	__delay_cycles(200);
+
+	P2OUT |= EN;
+	__delay_cycles(200);
+
+	P2OUT &= ~EN;
+	__delay_cycles(200);
 }
 
 void lcdWriteData(unsigned char data) {
