@@ -1,6 +1,4 @@
 #include "hardware_uart.h"
-#include "software_uart.h"
-#include "roomba.h"
 
 #define BAUD_9600 104
 #define BAUD_57600 1
