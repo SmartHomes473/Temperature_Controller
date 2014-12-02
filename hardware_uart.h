@@ -30,7 +30,7 @@ uint8_t UART_data_available();
 /*
  * This function returns the most recent UART data
  */
-uint8_t UART_get_data();
+uint8_t* UART_get_data();
 
 
 

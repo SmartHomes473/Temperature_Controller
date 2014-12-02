@@ -78,8 +78,8 @@ void UART_send_array(uint8_t* array, uint32_t array_length)
 	}
 }
 
-static volatile uint8_t new_UART_RX = 0;
-static uint8_t new_UART_present = 0;
+static volatile uint8_t new_UART_RX[10];
+static uint8_t UART_RX_idx = 0;
 /******************************************************************************
 * ISR for USCI A0 Receive
 ******************************************************************************/
@@ -91,8 +91,8 @@ isr_USCI_RX(void)
 #pragma vector=USCIAB0RX_VECTOR
 __interrupt void USCI0RX_ISR(void)
 {
-	new_UART_RX = UCA0RXBUF;
-	new_UART_present = 1;
+	new_UART_RX[UART_RX_idx] = UCA0RXBUF;
+	UART_RX_idx++;
 }
 
 
@@ -101,14 +101,14 @@ __interrupt void USCI0RX_ISR(void)
 ******************************************************************************/
 uint8_t UART_data_available()
 {
-	return new_UART_present;
+	return (new_UART_RX[UART_RX_idx-1] == 0x04);
 }
 
 /******************************************************************************
 * This function returns the most recent UART data
 ******************************************************************************/
-uint8_t UART_get_data()
+uint8_t* UART_get_data()
 {
-	new_UART_present = 0;
+	UART_RX_idx = 0;
 	return new_UART_RX;
 }

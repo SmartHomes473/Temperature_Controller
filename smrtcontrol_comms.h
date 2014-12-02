@@ -3,6 +3,12 @@
  */
 #include <stdint.h>
 
+typedef struct
+{
+	uint8_t unit;
+	int32_t temperature;
+} temp_t;
+
 /* '0' is ASCII is 48 */
 #define ASCII_OFFSET 48
 
@@ -19,5 +25,6 @@ void register_device(uint8_t* device_num_addr);
 /*
  * Parse incoming packet
  */
-uint8_t* parse_packet();
+temp_t parse_packet(uint8_t* device_num_addr, uint8_t* new_UART_RX);
+
 

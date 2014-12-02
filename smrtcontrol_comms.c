@@ -1,3 +1,5 @@
+#include <stdlib.h>
+
 #include "smrtcontrol_comms.h"
 #include "hardware_uart.h"
 #include "msp430g2553_utils.h"
@@ -38,79 +40,87 @@ void register_device(uint8_t* device_num_addr)
 /******************************************************************************
 * Parse incoming packet from SMRTControl
 ******************************************************************************/
-uint8_t* parse_packet(uint8_t* device_num_addr)
+temp_t parse_packet(uint8_t* device_num_addr, uint8_t* new_UART_RX)
 {
-	static parse_state_t state = NONE;
-	static uint8_t data_idx = 0;
-	static uint8_t device_num;
-	static uint8_t status;
-	static uint8_t data[10];
-	static uint16_t packet_size = 1;
-	uint8_t new_UART_RX;
+	parse_state_t state = NONE;
+	uint8_t data_idx = 0;
+	uint8_t device_num;
+	uint8_t status;
+	char data[10];
+	uint16_t packet_size = 1;
 
-	new_UART_RX = UART_get_data();
-	switch(state)
+	temp_t desired_temperature;
+
+	while(state != END)
 	{
-	case NONE:
-		if (new_UART_RX == PACKET_START_BYTE) {
-			state = DEVICE_NUM;
-		}
-		break;
-	case DEVICE_NUM:
-		device_num = new_UART_RX;
-		state = STATUS;
-		break;
-	case STATUS:
-		status = new_UART_RX;
-		if (status == 0)
+		switch(state)
 		{
-			/* Store device number */
-			flash_erase(device_num_addr);
-			flash_write(device_num_addr, device_num);
-			state = NONE;
-		}
-		else
-		{
-			state = SIZE;
-		}
-		break;
-	case SIZE:
-		packet_size = (new_UART_RX << 8);
-		state = SIZE_2;
-		break;
-	case SIZE_2:
-		packet_size |= (new_UART_RX);
+		case NONE:
+			if (*new_UART_RX == PACKET_START_BYTE) {
+				state = DEVICE_NUM;
+			}
+			new_UART_RX++;
+			break;
+		case DEVICE_NUM:
+			device_num = *new_UART_RX;
+			state = STATUS;
+			new_UART_RX++;
+			break;
+		case STATUS:
+			status = *new_UART_RX;
+			if (status == 0)
+			{
+				/* Store device number */
+				flash_erase(device_num_addr);
+				flash_write(device_num_addr, device_num);
+				state = NONE;
+			}
+			else
+			{
+				state = SIZE;
+			}
+			new_UART_RX++;
+			break;
+		case SIZE:
+			packet_size = (*new_UART_RX << 8);
+			state = SIZE_2;
+			new_UART_RX++;
+			break;
+		case SIZE_2:
+			packet_size |= (*new_UART_RX);
 
-		if (packet_size == 0 && device_num == 0)
-		{
-			/* Device being deleted */
-			flash_erase(device_num_addr);
-			state = NONE;
+			if (packet_size == 0 && device_num == 0)
+			{
+				/* Device being deleted */
+				flash_erase(device_num_addr);
+				state = NONE;
+			}
+			else
+			{
+				state = DATA;
+			}
+			new_UART_RX++;
+			break;
+		case DATA:
+			data[data_idx] = *new_UART_RX;
+			data_idx++;
+			new_UART_RX++;
+			break;
 		}
-		else
+
+		if (data_idx >= packet_size && state == DATA)
 		{
-			state = DATA;
+			/* Packet done */
+			desired_temperature.unit = data[data_idx-1] - ASCII_OFFSET;
+			data[data_idx-1] = 0;
+			data_idx = 0;
+			state = END;
 		}
-		break;
-	case DATA:
-		data[data_idx] = new_UART_RX;
-		data_idx++;
-		break;
-	case END:
-		state = NONE;
-		break;
 	}
+	state = NONE;
+	desired_temperature.temperature = atoi(data);
 
-	if (data_idx >= packet_size && state == DATA)
-	{
-		/* Packet done */
-		data_idx = 0;
-		state = END;
-
-		return data;
-	}
-
-	return 0;
+	return desired_temperature;
 }
 
 
