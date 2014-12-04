@@ -4,7 +4,7 @@
 #include "hardware_uart.h"
 #include "msp430g2553_utils.h"
 
-#define DEVICE_URL "http://rwooster.com/roomba.tar.gz"
+#define DEVICE_URL "http://rwooster.com/temperature.tar.gz"
 
 typedef enum
 {
@@ -26,11 +26,11 @@ void register_device(uint8_t* device_num_addr)
 	if (*device_num_addr == 255)
 	{
 		/* Register device */
-		uint8_t register_array[39] = {PACKET_START_BYTE, 0, 0, 0, 33};
-		memcpy(register_array+5, DEVICE_URL, 33);
-		register_array[38] = PACKET_END_BYTE;
+		uint8_t register_array[44] = {PACKET_START_BYTE, 0, 0, 0, 38};
+		memcpy(register_array+5, DEVICE_URL, 38);
+		register_array[43] = PACKET_END_BYTE;
 
-		UART_send_array(register_array, 39);
+		UART_send_array(register_array, 44);
 
 		flash_erase(device_num_addr);
 		flash_write(device_num_addr, 0);
