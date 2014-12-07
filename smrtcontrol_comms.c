@@ -51,6 +51,8 @@ temp_t parse_packet(uint8_t* device_num_addr, uint8_t* new_UART_RX)
 
 	temp_t desired_temperature;
 
+	uint8_t this_device = 1;
+
 	while(state != END)
 	{
 		switch(state)
@@ -63,8 +65,17 @@ temp_t parse_packet(uint8_t* device_num_addr, uint8_t* new_UART_RX)
 			break;
 		case DEVICE_NUM:
 			device_num = *new_UART_RX;
-			state = STATUS;
-			new_UART_RX++;
+
+			if (*device_num_addr == device_num)
+			{
+				state = STATUS;
+				new_UART_RX++;
+			}
+			else
+			{
+				this_device = 0;
+				state = END;
+			}
 			break;
 		case STATUS:
 			status = *new_UART_RX;
@@ -117,8 +128,18 @@ temp_t parse_packet(uint8_t* device_num_addr, uint8_t* new_UART_RX)
 			state = END;
 		}
 	}
+
 	state = NONE;
-	desired_temperature.temperature = atoi(data);
+
+	if (this_device == 0)
+	{
+		desired_temperature.temperature = INT32_MAX;
+		desired_temperature.unit = UINT8_MAX;
+	}
+	else
+	{
+		desired_temperature.temperature = atoi(data);
+	}
 
 	return desired_temperature;
 }
