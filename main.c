@@ -7,6 +7,31 @@
 #include "smrtcontrol_comms.h"
 #include "graphics_lcd.h"
 
+void itoa(long unsigned int value, char* result, int base)
+{
+      // check that the base if valid
+      if (base < 2 || base > 36) { *result = '\0';}
+
+      char* ptr = result, *ptr1 = result, tmp_char;
+      int tmp_value;
+
+      do {
+        tmp_value = value;
+        value /= base;
+        *ptr++ = "zyxwvutsrqponmlkjihgfedcba9876543210123456789abcdefghijklmnopqrstuvwxyz" [35 + (tmp_value - value * base)];
+      } while ( value );
+
+      // Apply negative sign
+      if (tmp_value < 0) *ptr++ = '-';
+      *ptr-- = '\0';
+      while(ptr1 < ptr) {
+        tmp_char = *ptr;
+        *ptr--= *ptr1;
+        *ptr1++ = tmp_char;
+      }
+
+}
+
 
 int main(void)
 {
@@ -26,23 +51,10 @@ int main(void)
 	init_temperature_sensor(BIT5);
 	fan_t fan = init_fan(BIT4);
 
-//	init_lcd();
-//	clear_screen();
-
-	char des_temp_text[] = "Desired Temperature: ";
-	char cur_temp_text[] = "Current Temperature: ";
-
-//	set_text(des_temp_text, 21, 5, 60);
-//	set_text(cur_temp_text, 21, 5, 75);
-//	set_text("Celsius", 7, 60, 10);
-
 	uint8_t* device_num_addr = (uint8_t*)FLASH_START_ADDR;
 	//register_device(device_num_addr);
 
 	temp_t desired_temperature = {.temperature = 20, .unit = 0};
-
-//	set_int(desired_temperature.temperature, 140, 60);
-
 
 	while (1)
 	{
@@ -61,32 +73,40 @@ int main(void)
 			temp = read_temperature_celsius();
 		}
 
-//		set_int((int)temp, 140, 75);
+//		uint8_t temp_array[10] = {0x0F, 0x05, 0x03, 0x00};
+//		char temp_str[3];
+//		itoa(temp, temp_str, 10);
+//
+//		if (temp < 9)
+//		{
+//			temp_array[4] = 0x01;
+//			memcpy(temp_array+5, temp_str, 1);
+//			temp_array[6] = 0x04;
+//			UART_send_array(temp_array, 7);
+//		}
+//		else if (temp < 99)
+//		{
+//			temp_array[4] = 0x02;
+//			memcpy(temp_array+5, temp_str, 2);
+//			temp_array[7] = 0x04;
+//			UART_send_array(temp_array, 8);
+//		}
+//		else
+//		{
+//			temp_array[4] = 0x02;
+//			memcpy(temp_array+5, temp_str, 3);
+//			temp_array[8] = 0x04;
+//			UART_send_array(temp_array, 9);
+//		}
+
 
 		if (UART_data_available() == 1) {
 			uint8_t* new_UART_RX = UART_get_data();
+			temp_t new_desired_temperature = parse_packet(device_num_addr, new_UART_RX);
 
-			temp_t last_des_temp = desired_temperature;
-			desired_temperature = parse_packet(device_num_addr, new_UART_RX);
-
-			if (last_des_temp.unit != desired_temperature.unit)
+			if (new_desired_temperature.temperature != INT32_MAX)
 			{
-//				if (desired_temperature.unit == 2)
-//				{
-//					set_text("Kelvin", 6, 50, 10);
-//				}
-//				else if (desired_temperature.unit == 1)
-//				{
-//					set_text("Farenheit", 9, 50, 10);
-//				}
-//				else
-//				{
-//					set_text("Celsius", 7, 50, 10);
-//				}
-			}
-			if (last_des_temp.temperature != desired_temperature.temperature)
-			{
-//				set_int(desired_temperature.temperature, 140, 60);
+				desired_temperature = new_desired_temperature;
 			}
 		}
 
